@@ -238,8 +238,8 @@ const ITEMS = [
   { name: "Scallion Oil", par: 2, minQty: 2, unit: "pkt", category: "Room Temperature" },
   { name: "Japanese Rice", par: 3, minQty: 2, unit: "pkt", category: "Room Temperature" },
   { name: "Black Vinegar Onion Sauce", par: 2, minQty: 2, unit: "btl", category: "Room Temperature" },
-  { name: "Japanese Mayonnaise", par: 4, minQty: 1, unit: "ctn", category: "Room Temperature" },
-  { name: "Mentai Sauce", par: 4, minQty: 1, unit: "ctn", category: "Room Temperature" },
+  { name: "Japanese Mayonnaise", par: 4, minQty: 1, unit: "ctn", parUnit: "pkt", category: "Room Temperature" },
+  { name: "Mentai Sauce", par: 4, minQty: 1, unit: "ctn", parUnit: "pkt", category: "Room Temperature" },
   { name: "Hot & Spicy Sauce", par: 2, minQty: 2, unit: "pkt", category: "Room Temperature" },
   { name: "Teriyaki Sauce", par: 2, minQty: 2, unit: "btl", category: "Room Temperature" },
   { name: "Honey Mustard Sauce", par: 2, minQty: 2, unit: "pkt", category: "Room Temperature" },
@@ -268,7 +268,7 @@ function renderItems() {
       <div class="item-row" id="row-${i}">
         <div class="item-info">
           <div class="item-name">${item.name}${item.tag ? ` <span class="item-tag">(${item.tag})</span>` : ""}</div>
-          <div class="item-par">Par: ${getEffectivePar(item)} ${item.unit}${getEffectivePar(item) !== item.par ? " (weekend)" : ""}</div>
+          <div class="item-par">Par: ${getEffectivePar(item)} ${item.parUnit || item.unit}${getEffectivePar(item) !== item.par ? " (weekend)" : ""}</div>
         </div>
         <input
           type="number"
