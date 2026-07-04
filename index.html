@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Uptown CK Auto-Reorder</title>
+<style>
+  :root {
+    --bg: #1a1a1a;
+    --bg-card: #242424;
+    --bg-input: #2e2e2e;
+    --accent: #7b8cde;
+    --accent-dim: #5a68a8;
+    --text: #eaeaea;
+    --text-dim: #9a9a9a;
+    --danger: #e07a7a;
+    --ok: #7ad7a0;
+    --border: #3a3a3a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 16px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  h1 {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+    color: var(--text);
+  }
+  .subtitle {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+  }
+  .item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+  }
+  .item-info { flex: 1; min-width: 0; }
+  .item-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .item-par {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .item-input {
+    width: 72px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 15px;
+    text-align: center;
+    padding: 8px 4px;
+    -moz-appearance: textfield;
+  }
+  .item-input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .item-input::-webkit-outer-spin-button,
+  .item-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .item-row.low { border-color: var(--danger); }
+  .item-row.ok { border-color: var(--ok); }
+
+  .section-header {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 18px 0 8px 2px;
+  }
+  .section-header:first-child { margin-top: 0; }
+
+  .item-tag {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  .btn-primary {
+    width: 100%;
+    background: var(--accent);
+    color: #14161f;
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 700;
+    margin-top: 16px;
+    cursor: pointer;
+  }
+  .btn-primary:active { background: var(--accent-dim); }
+
+  .btn-secondary {
+    width: 100%;
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 13px;
+    margin-top: 8px;
+    cursor: pointer;
+  }
+
+  .result {
+    margin-top: 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--accent-dim);
+    border-radius: 10px;
+    padding: 16px;
+    display: none;
+  }
+  .result.visible { display: block; }
+  .result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .result-header span {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .copy-btn {
+    background: var(--accent);
+    color: #14161f;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .copy-btn.copied { background: var(--ok); }
+  pre#orderText {
+    white-space: pre-wrap;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text);
+    margin: 0;
+  }
+  .no-order {
+    color: var(--ok);
+    font-size: 14px;
+    text-align: center;
+    padding: 8px 0;
+  }
+  .footer-note {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 24px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>CK Auto-Reorder</h1>
+  <div class="subtitle">Count today's stock. Items below par auto-generate an order line.</div>
+
+  <div id="itemList"></div>
+
+  <button class="btn-primary" onclick="generateOrder()">Generate Order</button>
+  <button class="btn-secondary" onclick="resetCounts()">Reset All Counts</button>
+
+  <div id="result" class="result">
+    <div class="result-header">
+      <span>Order Preview</span>
+      <button class="copy-btn" id="copyBtn" onclick="copyOrder()">Copy</button>
+    </div>
+    <pre id="orderText"></pre>
+  </div>
+
+  <div class="footer-note">A'REST Uptown &mdash; Central Kitchen Order Tool</div>
+</div>
+
+<script>
+// Item master: name, par level, minimum order qty, unit, category, tag (optional label shown next to name)
+const ITEMS = [
+  // ---- Freezer (CK) ----
+  { name: "Pasta", par: 50, minQty: 25, unit: "pkt", category: "Freezer" },
+  { name: "Chicken Chop", par: 10, minQty: 1, unit: "pkt", category: "Freezer" },
+  { name: "Chicken Wings", par: 8, minQty: 1, unit: "pkt", category: "Freezer" },
+  { name: "Chicken Breast", par: 20, minQty: 10, unit: "pkt", category: "Freezer" },
+  { name: "Seafood", par: 15, minQty: 20, unit: "pkt", category: "Freezer" },
+  { name: "Salmon for Pizza", par: 25, minQty: 50, unit: "pkt", category: "Freezer" },
+  { name: "Salmon Don", par: 25, minQty: 50, unit: "pkt", category: "Freezer" },
+  { name: "Salmon (Chazuke)", par: 5, minQty: 10, unit: "pkt", category: "Freezer" },
+  { name: "Minced Beef", par: 10, minQty: 10, unit: "pkt", category: "Freezer" },
+  { name: "Minced Chicken", par: 10, minQty: 10, unit: "pkt", category: "Freezer" },
+  { name: "Chicken Pepperoni", par: 1, minQty: 1, unit: "pkt", category: "Freezer" },
+  { name: "Beef Pepperoni", par: 1, minQty: 1, unit: "pkt", category: "Freezer" },
+  { name: "Angus Beef", par: 10, minQty: 10, unit: "pkt", category: "Freezer" },
+  { name: "Duck Pasta", par: 25, minQty: 50, unit: "pkt", category: "Freezer" },
+  { name: "Duck Pizza", par: 25, minQty: 50, unit: "pkt", category: "Freezer" },
+  { name: "Fish Fillet", par: 20, minQty: 20, unit: "pkt", category: "Freezer" },
+  { name: "Cube Fish Fillet", par: 10, minQty: 10, unit: "pkt", category: "Freezer" },
+  { name: "Japanese Curry", par: 20, minQty: 10, unit: "pkt", category: "Freezer" },
+  { name: "Mutton Curry", par: 10, minQty: 10, unit: "pkt", category: "Freezer" },
+  { name: "Homemade Dry Curry", par: 10, minQty: 10, unit: "pkt", category: "Freezer" },
+  { name: "Handmade Noodles", par: 50, minQty: 200, unit: "pcs", category: "Freezer" },
+
+  // ---- Chiller (merged into main list, tagged) ----
+  { name: "Truffle Base (Bottle)", par: 2, minQty: 2, unit: "btl", category: "Freezer", tag: "Chiller" },
+  { name: "Truffle Mayo Sauce (Pack)", par: 3, minQty: 4, unit: "pkt", category: "Freezer", tag: "Chiller" },
+
+  // ---- Room Temperature ----
+  { name: "Mala Base", par: 2, minQty: 2, unit: "pkt", category: "Room Temperature" },
+  { name: "Scallion Oil", par: 2, minQty: 2, unit: "pkt", category: "Room Temperature" },
+  { name: "Japanese Rice", par: 3, minQty: 2, unit: "pkt", category: "Room Temperature" },
+  { name: "Black Vinegar Onion Sauce", par: 2, minQty: 2, unit: "btl", category: "Room Temperature" },
+  { name: "Japanese Mayonnaise", par: 4, minQty: 1, unit: "ctn", category: "Room Temperature" },
+  { name: "Mentai Sauce", par: 4, minQty: 1, unit: "ctn", category: "Room Temperature" },
+  { name: "Hot & Spicy Sauce", par: 2, minQty: 2, unit: "pkt", category: "Room Temperature" },
+  { name: "Teriyaki Sauce", par: 2, minQty: 2, unit: "btl", category: "Room Temperature" },
+  { name: "Honey Mustard Sauce", par: 2, minQty: 2, unit: "pkt", category: "Room Temperature" },
+  { name: "Chili Oil", par: 2, minQty: 2, unit: "btl", category: "Room Temperature" },
+  { name: "BBQ Sauce", par: 2, minQty: 1, unit: "ctn", category: "Room Temperature" },
+  { name: "Mapo Sauce", par: 6, minQty: 6, unit: "pkt", category: "Room Temperature" },
+  { name: "Dashi Powder (Chazuke Soup Base)", par: 8, minQty: 8, unit: "pkt", category: "Room Temperature" },
+  { name: "Fried Garlic Slice", par: 2, minQty: 1, unit: "pkt", category: "Room Temperature" },
+  { name: "Fried Onion", par: 2, minQty: 1, unit: "pkt", category: "Room Temperature" },
+  { name: "Fried Powder (Fish & Chip Powder)", par: 3, minQty: 4, unit: "pkt", category: "Room Temperature" },
+  { name: "Aromat Seasoning Powder", par: 2, minQty: 2, unit: "pkt", category: "Room Temperature" },
+  { name: "Chicken Stock", par: 2, minQty: 2, unit: "pkt", category: "Room Temperature" },
+];
+
+function renderItems() {
+  const list = document.getElementById("itemList");
+  let html = "";
+  let lastCategory = null;
+
+  ITEMS.forEach((item, i) => {
+    if (item.category !== lastCategory) {
+      html += `<div class="section-header">${item.category}</div>`;
+      lastCategory = item.category;
+    }
+    html += `
+      <div class="item-row" id="row-${i}">
+        <div class="item-info">
+          <div class="item-name">${item.name}${item.tag ? ` <span class="item-tag">(${item.tag})</span>` : ""}</div>
+          <div class="item-par">Par: ${getEffectivePar(item)} ${item.unit}${getEffectivePar(item) !== item.par ? " (weekend)" : ""}</div>
+        </div>
+        <input
+          type="number"
+          inputmode="decimal"
+          class="item-input"
+          id="input-${i}"
+          placeholder="0"
+          oninput="checkRow(${i})"
+        />
+      </div>
+    `;
+  });
+
+  list.innerHTML = html;
+}
+
+function checkRow(i) {
+  const item = ITEMS[i];
+  const par = getEffectivePar(item);
+  const val = document.getElementById(`input-${i}`).value;
+  const row = document.getElementById(`row-${i}`);
+  row.classList.remove("low", "ok");
+  if (val === "") return;
+  const count = parseFloat(val);
+  if (isNaN(count)) return;
+  if (count < par) {
+    row.classList.add("low");
+  } else {
+    row.classList.add("ok");
+  }
+}
+
+function getTomorrowDateObj() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d;
+}
+
+function getTomorrowDate() {
+  const d = getTomorrowDateObj();
+  const day = d.getDate();
+  const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  return `${day} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function isTomorrowWeekend() {
+  const dow = getTomorrowDateObj().getDay(); // 0 = Sunday, 6 = Saturday
+  return dow === 0 || dow === 6;
+}
+
+function getEffectivePar(item) {
+  if (item.name === "Pasta" && item.category === "Freezer" && isTomorrowWeekend()) {
+    return 70;
+  }
+  return item.par;
+}
+
+function generateOrder() {
+  // Group flagged items by category, preserving item order within each category
+  const byCategory = {};
+  ITEMS.forEach((item, i) => {
+    const val = document.getElementById(`input-${i}`).value;
+    if (val === "") return;
+    const count = parseFloat(val);
+    if (isNaN(count)) return;
+    const par = getEffectivePar(item);
+    if (count < par) {
+      const shortfall = par - count;
+      const orderQty = Math.ceil(shortfall / item.minQty) * item.minQty;
+      const line = `- ${item.name}${item.tag ? ` (${item.tag})` : ""} ${orderQty}${item.unit}`;
+      if (!byCategory[item.category]) byCategory[item.category] = [];
+      byCategory[item.category].push(line);
+    }
+  });
+
+  const resultBox = document.getElementById("result");
+  const orderTextEl = document.getElementById("orderText");
+  resultBox.classList.add("visible");
+
+  const header = `Uptown New Order (${getTomorrowDate()})`;
+  const categories = Object.keys(byCategory);
+
+  if (categories.length === 0) {
+    orderTextEl.innerHTML = "";
+    document.getElementById("orderText").innerHTML = `<div class="no-order">${header}\n\nAll items at or above par. No order needed today.</div>`;
+  } else {
+    let body = "";
+    categories.forEach((cat) => {
+      body += `\n${cat.toUpperCase()}\n${byCategory[cat].join("\n")}\n`;
+    });
+    orderTextEl.textContent = `${header}\n${body.trimEnd()}`;
+  }
+
+  document.getElementById("copyBtn").textContent = "Copy";
+  document.getElementById("copyBtn").classList.remove("copied");
+
+  resultBox.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function copyOrder() {
+  const text = document.getElementById("orderText").textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById("copyBtn");
+    btn.textContent = "Copied!";
+    btn.classList.add("copied");
+    setTimeout(() => {
+      btn.textContent = "Copy";
+      btn.classList.remove("copied");
+    }, 1500);
+  });
+}
+
+function resetCounts() {
+  ITEMS.forEach((item, i) => {
+    document.getElementById(`input-${i}`).value = "";
+    document.getElementById(`row-${i}`).classList.remove("low", "ok");
+  });
+  document.getElementById("result").classList.remove("visible");
+}
+
+renderItems();
+</script>
+</body>
+</html>
